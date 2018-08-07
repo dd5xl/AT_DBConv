@@ -9,7 +9,7 @@ import argparse
 
 
 # predefined fields
-STATEDICTGER = {0:'SA/MVP', 1:"BE", 2:"HH/SH", 3:"NS", 4:"NRW", 5:"RP/SR", 6:"HE", 7:"BW", 8:"BY", 9:"SN/TH"}
+STATEDICTGER = {0:'SA/MVP', 1:"BER", 2:"HH/SH", 3:"NI", 4:"NRW", 5:"RP/SR", 6:"HE", 7:"BW", 8:"BY", 9:"SN/TH"}
 COUNTRY = 'DMR' # This could be generated automatically from ID if we had a dictionary MCC -> country name ;-)
 CALLTYPE = 'Private Call'
 CALLALERT = 'None'
@@ -29,7 +29,7 @@ ID, Callsign, Name, City, State, Country, Remarks, CallType, CallAlert
 '''
 
 def build_mcc_dict (CSVFILE):
-    print ('Building MCC database... ', end='')
+    print ('\nBuilding MCC database... ', end='')
     mccdict={}
     with open (CSVFILE, 'r', encoding='ISO8859-15') as dfile:
         cnt=0
@@ -62,6 +62,8 @@ mccdict=build_mcc_dict(MCCCSVFILE)
 
 with open (args.infile, 'r', encoding='iso8859-15') as filein, open (args.outfile, 'w', encoding='iso8859-15') as fileout:
     cnt = 0
+    plzcnt = 0
+    gercnt = 0
     print ('\nConverting line:')
     for line in filein:
         print (cnt+1, end='\r')
@@ -77,14 +79,17 @@ with open (args.infile, 'r', encoding='iso8859-15') as filein, open (args.outfil
         cnt += 1
         mcc = dmrid[0:3]
         if mcc in mccdict: # look up for country name based on MCC
-            cntry = mccdict[mcc]
+            cntry = mccdict[mcc] # use country name if found 
         else:
-            cntry = COUNTRY
-        if mcc == '262' or mcc == '263': # different processing for german calls, see initial comment box
-            gst = int(dmrid[3]) # extract german state id
-            lineout = OUTFORMAT.format(dmrid, call, pname, state, STATEDICTGER[gst], cntry, remark, CALLTYPE, CALLALERT)
-        else:
-            lineout = OUTFORMAT.format(dmrid, call, pname, city, state, cntry, remark, CALLTYPE, CALLALERT) 
-        fileout.write(lineout)
+            cntry = COUNTRY # else use constant
+        if mcc == '262' or mcc == '263' or mcc == '264': # different processing for german calls, see initial comment box
+            gercnt += 1
+            city = state # move cityname to correct field, overwrite german street address
+            state = STATEDICTGER[int(dmrid[3])] # look for state name based on 4th digit of DMR-ID
+            if city and ord(city[0])-48 in range (0, 10):
+                (plz, city) = city.split(None, 1) # separate ZIP and Cityname
+                plzcnt += 1
+        fileout.write(OUTFORMAT.format(dmrid, call, pname, city, state, cntry, remark, CALLTYPE, CALLALERT))
 
-print ("\nAll done!\n")
+print ('{} entries converted, {} german ZIPs of {} entries removed.'.format (cnt, plzcnt, gercnt))
+print ('\nAll done!\n')
