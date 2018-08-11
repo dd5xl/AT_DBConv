@@ -13,6 +13,7 @@ STATEDICTGER = {0:'SA/MVP', 1:"BER", 2:"HH/SH", 3:"NI", 4:"NRW", 5:"RP/SR", 6:"H
 COUNTRY = 'DMR' # This could be generated automatically from ID if we had a dictionary MCC -> country name ;-)
 CALLTYPE = 'Private Call'
 CALLALERT = 'None'
+#OUTFORMAT = '"{0}","{1}","{2}","{3}","{4}","{5}","{6}","{7}","{8}","{9}"\n'
 OUTFORMAT = '{0},{1},{2},{3},{4},{5},{6},{7},{8}\n'
 MCCCSVFILE='MCCMNCs_v2.csv'
 
@@ -29,7 +30,7 @@ ID, Callsign, Name, City, State, Country, Remarks, CallType, CallAlert
 '''
 
 def build_mcc_dict (CSVFILE):
-    print ('\nBuilding MCC database... ', end='')
+    print ('\nBuilding MCC database... ', end="")
     mccdict={}
     with open (CSVFILE, 'r', encoding='ISO8859-15') as dfile:
         cnt=0
@@ -37,6 +38,8 @@ def build_mcc_dict (CSVFILE):
             line = line.strip()
             (mccmnc, mcc, mnc, operator) = line.split(',,', 4)
             country=operator.split(',')[0]
+            if country[0]=='"':
+                country = country[1:]
             if mcc in mccdict or mcc == 'MCC':
                 continue
             else:
