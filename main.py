@@ -6,6 +6,7 @@ Created on 26.07.2018
 
 
 import argparse
+from time import sleep
 
 
 # predefined fields
@@ -67,9 +68,10 @@ with open (args.infile, 'r', encoding='iso8859-15') as filein, open (args.outfil
     cnt = 0
     plzcnt = 0
     gercnt = 0
+    plzerr = 0
     print ('\nConverting line:')
     for line in filein:
-        print (cnt+1, end='\r')
+        print ("{} : ".format(cnt+1), end='')#, end='\r')
         line = line.strip() # discard leading spaces and trailing NLs
         if len(line) == 7 or ',Time,' in line: # discard both 1st and last line of user.bin
             continue
@@ -80,6 +82,7 @@ with open (args.infile, 'r', encoding='iso8859-15') as filein, open (args.outfil
             else:
                 continue
         cnt += 1
+        print ("{}   ".format(dmrid), end='')
         mcc = dmrid[0:3]
         if mcc in mccdict: # look up for country name based on MCC
             cntry = mccdict[mcc] # use country name if found 
@@ -89,10 +92,18 @@ with open (args.infile, 'r', encoding='iso8859-15') as filein, open (args.outfil
             gercnt += 1
             city = state # move cityname to correct field, overwrite german street address
             state = STATEDICTGER[int(dmrid[3])] # look for state name based on 4th digit of DMR-ID
-            if city and ord(city[0])-48 in range (0, 10):
-                (plz, city) = city.split(None, 1) # separate ZIP and Cityname
+            if city and ord(city[0])-48 in range (0, 10): # Feld city beginnt mit einer PLZ
+                if city[5] == " ":
+                    (plz, city) = city.split(None, 1) # separate ZIP and Cityname
+                else: # Sonderbehandlung wenn kein Space nach PLZ
+                    plzerr += 1
+                    plz = city[0:5]
+                    city = city[5:]
+                    print ("F:{} {} {}".format(plzerr, plz, city), end='')
                 plzcnt += 1
+        print ("")
         fileout.write(OUTFORMAT.format(dmrid, call, pname, city, state, cntry, remark, CALLTYPE, CALLALERT))
 
 print ('{} entries converted, {} german ZIPs of {} entries removed.'.format (cnt, plzcnt, gercnt))
+print ('Warnings: PLZ errors={}'.format (plzerr))
 print ('\nAll done!\n')
